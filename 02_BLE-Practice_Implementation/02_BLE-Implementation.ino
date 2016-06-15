@@ -5,17 +5,13 @@ BLEService cyclingSpeedAndCadence("1816"); // BLE Cycling Power Service
 BLEService batteryService("180F");
 
 // BLE Battery Level Characteristic
-BLEUnsignedShortCharacteristic cscMeasurementChar("2A5B",  // standard 16-bit characteristic UUID
-    BLENotify);     // remote clients will be able to
-// get notifications if this characteristic changes
-//BLEIntCharacteristic cscFeatureChar("2A5C",  // standard 16-bit characteristic UUID
-//    BLERead);     // remote clients will be able to
-// get notifications if this characteristic changes
-BLEUnsignedCharCharacteristic batteryLevelChar("2A19",  // standard 16-bit characteristic UUID
+BLEUnsignedIntCharacteristic cscMeasurementChar("2A5B",
+    BLENotify);
+BLEUnsignedCharCharacteristic batteryLevelChar("2A19",
     BLERead | BLENotify); 
 
 int oldBatteryLevel = 0;
-unsigned short oldCumCrankRevolutions = 0;  // last battery level reading from analog input
+unsigned int oldCumCrankRevolutions = 0;  // last battery level reading from analog input
 unsigned int oldMeasTime = 0;
 long previousMillis = 0;
 
@@ -70,7 +66,7 @@ void loop() {
 }
 
 void increasePowerLevel() {
-  unsigned short cumCrankRevolutions = oldCumCrankRevolutions + 128;
+  unsigned int cumCrankRevolutions = oldCumCrankRevolutions + 1;
 
   if (cumCrankRevolutions != oldCumCrankRevolutions) {      // if the battery level has changed
     Serial.print("cumCrankRevolutions is now: "); // print it
