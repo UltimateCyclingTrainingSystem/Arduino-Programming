@@ -49,16 +49,16 @@ void BLE_POW_updatePower(void) {
 }
 
 void updatePowerMeasChar(void) {
-  unsigned char FLGSL = (unsigned char)(cucBLEPowerMeasurementFlags & 0x00FF);
-  unsigned char FLGSH = (unsigned char)((cucBLEPowerMeasurementFlags >> 8) & 0x00FF);
-  unsigned char POWL = (unsigned char)(blePowerMeasurement & 0x00FF);
-  unsigned char POWH = (unsigned char)((blePowerMeasurement >> 8) & 0x00FF);
-  unsigned char ACCTL = (unsigned char)(bleAccumulatedTorque & 0x00FF);
-  unsigned char ACCTH = (unsigned char)((bleAccumulatedTorque >> 8) & 0x00FF);
-  unsigned char CCRL = (unsigned char)((bleCumulativeCrankRevolutions) & 0x00FF);
-  unsigned char CCRH = (unsigned char)((bleCumulativeCrankRevolutions >> 8) & 0x00FF);
-  unsigned char LCETL = (unsigned char)((bleLastCrankEventTime) & 0x00FF);
-  unsigned char LCETH = (unsigned char)((bleLastCrankEventTime >> 8) & 0x00FF);
+  unsigned char FLGSL = (unsigned char)(cucBLEPowerMeasurementFlags & 0x00FF);          // Measurement flags (lower byte);
+  unsigned char FLGSH = (unsigned char)((cucBLEPowerMeasurementFlags >> 8) & 0x00FF);   // Measurement flags (higher byte);
+  unsigned char POWL = (unsigned char)(blePowerMeasurement & 0x00FF);                   // Power measurement (lower byte);
+  unsigned char POWH = (unsigned char)((blePowerMeasurement >> 8) & 0x00FF);            // Power measurement (higer byte);
+  unsigned char ACCTL = (unsigned char)(bleAccumulatedTorque & 0x00FF);                 // Accumulated torque (lower byte);
+  unsigned char ACCTH = (unsigned char)((bleAccumulatedTorque >> 8) & 0x00FF);          // Accumulated torque (higer byte);
+  unsigned char CCRL = (unsigned char)((bleCumulativeCrankRevolutions) & 0x00FF);       // Cumulative crank revolutions (lower byte);
+  unsigned char CCRH = (unsigned char)((bleCumulativeCrankRevolutions >> 8) & 0x00FF);  // Cumulative crank revolutions (higher byte);
+  unsigned char LCETL = (unsigned char)((bleLastCrankEventTime) & 0x00FF);              // Last event time (lower byte);
+  unsigned char LCETH = (unsigned char)((bleLastCrankEventTime >> 8) & 0x00FF);         // Last event time (higher byte);
   unsigned char powerMeasurementCharArray[10] = { FLGSL, FLGSH, POWL, POWH, ACCTL, ACCTH, CCRL, CCRH, LCETL, LCETH };
 
    powerMeasurementChar.setValue(powerMeasurementCharArray, 10);

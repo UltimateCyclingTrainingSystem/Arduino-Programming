@@ -71,7 +71,7 @@ unsigned char oldBleSensorLocation = 0;
 // BLE Formatted global variables
 unsigned short bleCumulativeCrankRevolutions = 0; // Resolution: 1 bit = 1 revolution.
 unsigned short bleLastCrankEventTime = 0;         // Resolution: 1 bit = 1/1024 seconds.
-short blePowerMeasurement = 0;           // Resolution: 1 bit = 1 Watt.
+short blePowerMeasurement = 0;                    // Resolution: 1 bit = 1 Watt.
 unsigned short bleAccumulatedTorque = 0;          // Resolution: 1 bit = 1/32 Nm.
 
 // BLE Peripheral, service and caracteristic.
