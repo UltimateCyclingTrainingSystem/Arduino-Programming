@@ -4,7 +4,7 @@
 #include <CurieTimerOne.h>
 
 // Definitions
-#define SENSOR_PIN 12
+#define SENSOR_PIN 2
 //#define ADV_CALC 1 // Uncomment to get cadenceRevS averages.
 
 // Needed variables
