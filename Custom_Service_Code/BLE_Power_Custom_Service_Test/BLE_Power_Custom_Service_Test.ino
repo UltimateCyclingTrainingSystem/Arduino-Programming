@@ -27,8 +27,8 @@ long previousMillis = 0;
 
 // BLE Peripheral, service and caracteristic.
 BLEPeripheral blePeripheral; // create peripheral instance.
-BLEService powerService("19B10010-E8F2-537E-4F6C-D104768A1214"); // create service.
-BLEFloatCharacteristic powerCharacteristic("19B10011-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify); // create power characteristic and allow remote device to read and be notified.
+BLEService powerService("19B20010-E8F2-537E-4F6C-D104768A1214"); // create service.
+BLEFloatCharacteristic powerCharacteristic("19B20011-E8F2-537E-4F6C-D104768A1214", BLERead | BLENotify); // create power characteristic and allow remote device to read and be notified.
 
 /**
  *  Setup function, run at the beginning of execution
