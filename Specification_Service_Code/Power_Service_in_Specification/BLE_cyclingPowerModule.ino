@@ -1,51 +1,43 @@
-
 void BLE_POW_updatePower(void) {
-  // Convert to BLE data format.
-  if(usTorqueCounter > 0) {
-    fAverageTorque = fTorqueSum / float(usTorqueCounter);
-  }
-  else {
-    fAverageTorque = 0.0f;
-  }
-  
-  fTorqueSum = 0.0f;
-  usTorqueCounter = 0;
-  
-  if(fInstCadenceRev > 0) {
-    fAveragePower = fAverageTorque / fInstCadenceRev;
-  }
-  else {
-    fAveragePower = 0.0f;
-  }
-  
-  blePowerMeasurement = (short) fAveragePower;
-  bleAccumulatedTorque = (unsigned short) (fAccumulatedTorque * 32);
 
-  if(bConnectedFlag && (oldBlePowerFeature != cuiBLEPowerFeatureConf)) {
+  // Power must be calculated locally, cadence remotely. Local cadence calculation only for debug purposes.
+  calculateBLEPowerLocally();
+  calculateBLECadenceLocally();
+
+  // Prepare values to be sent by BLE
+  formatBLEPower();
+  formatBLECadence();
+
+  if (bConnectedFlag && (oldBlePowerFeature != cuiBLEPowerFeatureConf)) {
     updatePowerFeatureChar();
     oldBlePowerFeature = cuiBLEPowerFeatureConf;
   }
-  
-  if(bConnectedFlag && (oldBleSensorLocation != cucBLEPowerSensorLocation)) {
+
+  if (bConnectedFlag && (oldBleSensorLocation != cucBLEPowerSensorLocation)) {
     updatePowerSensorLocChar();
     oldBleSensorLocation = cucBLEPowerSensorLocation;
   }
- 
-  if(bConnectedFlag && (fOldAccumulatedTorque != fAccumulatedTorque)) {
-    updatePowerMeasChar(); 
+
+  if (bConnectedFlag && (fOldAccumulatedTorque != fAccumulatedTorque)) {
+    updatePowerMeasChar();
     fOldAccumulatedTorque = fAccumulatedTorque;
   }
 
-  #ifdef DEBUG_ACCUM_TORQUE
-  Serial.println("fAverageTorque: ");
-  Serial.println(fAverageTorque);
-  Serial.println("fAveragePower: ");
-  Serial.println(fAveragePower);
-  Serial.println("blePowerMeasurement: ");
-  Serial.println(blePowerMeasurement);
-  Serial.println("bleAccumulatedTorque: ");
-  Serial.println(bleAccumulatedTorque);
-  #endif
+#ifdef DEBUG_MAIN_VALUES
+  Serial.print("fAverageTorque: ");
+  Serial.print(fAverageTorque);
+  Serial.println(" Nm");
+  Serial.print("fInstCadenceRev: ");
+  Serial.print(fInstCadenceRev);
+  Serial.println(" rev/s");
+  Serial.print("fInstCadenceRPM: ");
+  Serial.print(60.0f * fInstCadenceRev);
+  Serial.println(" rpm");
+  Serial.print("fAveragePower: ");
+  Serial.print(fAveragePower);
+  Serial.println(" W");
+  Serial.println("-------------------------------");
+#endif
 }
 
 void updatePowerMeasChar(void) {
@@ -61,9 +53,9 @@ void updatePowerMeasChar(void) {
   unsigned char LCETH = (unsigned char)((bleLastCrankEventTime >> 8) & 0x00FF);         // Last event time (higher byte);
   unsigned char powerMeasurementCharArray[10] = { FLGSL, FLGSH, POWL, POWH, ACCTL, ACCTH, CCRL, CCRH, LCETL, LCETH };
 
-   powerMeasurementChar.setValue(powerMeasurementCharArray, 10);
+  powerMeasurementChar.setValue(powerMeasurementCharArray, 10);
 
-  #ifdef DEBUG_BLE_MESSAGES
+#ifdef DEBUG_BLE_MESSAGES
   Serial.println("powerMeasurementCharArray: ");
   Serial.println(powerMeasurementCharArray[0]);
   Serial.println(powerMeasurementCharArray[1]);
@@ -75,7 +67,8 @@ void updatePowerMeasChar(void) {
   Serial.println(powerMeasurementCharArray[7]);
   Serial.println(powerMeasurementCharArray[8]);
   Serial.println(powerMeasurementCharArray[9]);
-  #endif
+  Serial.println("-------------------------------");
+#endif
 }
 
 void updatePowerFeatureChar(void) {
@@ -84,28 +77,111 @@ void updatePowerFeatureChar(void) {
   unsigned char PWFHL = (unsigned char)((cuiBLEPowerFeatureConf >> 16) & 0x000000FF);
   unsigned char PWFHH = (unsigned char)((cuiBLEPowerFeatureConf >> 24) & 0x000000FF);
   unsigned char powerFeatureCharArray[4] = { PWFLL, PWFLH, PWFHL, PWFHH };
-  
+
   powerFeatureChar.setValue(powerFeatureCharArray, 4);
 
-  #ifdef DEBUG_BLE_MESSAGES
+#ifdef DEBUG_BLE_MESSAGES
   Serial.println("powerFeatureCharArray: ");
   Serial.println(powerFeatureCharArray[0]);
   Serial.println(powerFeatureCharArray[1]);
   Serial.println(powerFeatureCharArray[2]);
   Serial.println(powerFeatureCharArray[3]);
-  #endif
+  Serial.println("-------------------------------");
+#endif
 }
 
 void updatePowerSensorLocChar(void) {
   unsigned char SENL = (unsigned char) cucBLEPowerSensorLocation;
   unsigned char powerSensorLocCharArray[1] = { SENL };
-  
+
   powerSensorLocationChar.setValue(powerSensorLocCharArray, 1);
 
-  
-  #ifdef DEBUG_BLE_MESSAGES
+#ifdef DEBUG_BLE_MESSAGES
   Serial.println("powerSensorLocCharArray: ");
   Serial.println(powerSensorLocCharArray[0]);
-  #endif
+  Serial.println("-------------------------------");
+#endif
 }
 
+void calculateBLECadenceLocally(void) {
+  float num = float(uiCumulativeCrankRevolutions - uiOldCumulativeCrankRevolutions);
+  float divi;
+
+  // If crank event time has already wrapped around, use a modified formula.
+  if (ulOldCadenceLastCrankEventTime > ulCadenceLastCrankEventTime) {
+    divi = float(64000 - ulOldCadenceLastCrankEventTime + ulCadenceLastCrankEventTime) / 1000.0f;
+  }
+  // If no wrapping then proceed as usual.
+  else {
+    divi = float(ulCadenceLastCrankEventTime - ulOldCadenceLastCrankEventTime) / 1000.0f;
+  }
+
+  // If crank event times are the same, then no more pedaling -> bike is stopped or coasting.
+  if (ulCadenceLastCrankEventTime == ulOldCadenceLastCrankEventTime) {
+    fInstCadenceRev = 0;
+  }
+  // If different times -> bike moving.
+  else {
+    fInstCadenceRev = num / divi;
+  }
+
+  // For the special case that the pedal stays in a position where the sensor detects.
+  if (num >= 4) {  // Because let's be honest, only olympians pedal that fast.
+    fInstCadenceRev = 0.0f;
+    uiCadenceReadWait = cuiMinRevDuration;
+  }
+
+#ifdef DEBUG_CADENCE_CALCULATIONS
+  Serial.print("uiOldCumulativeCrankRevolutions: ");
+  Serial.println(uiOldCumulativeCrankRevolutions);
+  Serial.print("uiCumulativeCrankRevolutions: ");
+  Serial.println(uiCumulativeCrankRevolutions);
+  Serial.print("ulOldCadenceLastCrankEventTime: ");
+  Serial.println(ulOldCadenceLastCrankEventTime);
+  Serial.print("ulCadenceLastCrankEventTime: ");
+  Serial.println(ulCadenceLastCrankEventTime);
+  Serial.print("fInstCadenceRev: ");
+  Serial.println(fInstCadenceRev);
+  Serial.print("fInstCadenceRPM: ");
+  Serial.println(60.0f * fInstCadenceRev);
+  Serial.println("-------------------------------");
+#endif
+
+  uiOldCumulativeCrankRevolutions = uiCumulativeCrankRevolutions;
+  ulOldCadenceLastCrankEventTime = ulCadenceLastCrankEventTime;
+}
+
+void calculateBLEPowerLocally(void) {
+  // Convert to BLE data format.
+  if (usTorqueCounter > 0) {
+    fAverageTorque = fTorqueSum / float(usTorqueCounter);
+  }
+  else {
+    fAverageTorque = 0.0f;
+  }
+
+  fTorqueSum = 0.0f;
+  usTorqueCounter = 0;
+
+  fAveragePower = 2 * cfPi * fAverageTorque * fInstCadenceRev;
+
+#ifdef DEBUG_POWER_CALCULATIONS
+  Serial.print("fAverageTorque: ");
+  Serial.println(fAverageTorque);
+  Serial.print("fAveragePower: ");
+  Serial.println(fAveragePower);
+  Serial.println("-------------------------------");
+#endif
+}
+
+void formatBLECadence(void) {
+  // Convert to BLE data format.
+  bleCumulativeCrankRevolutions = (unsigned short) uiCumulativeCrankRevolutions; // Resolution: 1 bit = 1 revolution.
+  bleLastCrankEventTime = (unsigned short)(float(ulCadenceLastCrankEventTime) * 1.024f);       // Resolution: 1 bit = 1/1024 seconds.
+}
+
+void formatBLEPower(void) {
+  // Convert to BLE data format.
+  blePowerMeasurement = (short) fAveragePower;
+  bleAccumulatedTorque = (unsigned short) (fAccumulatedTorque * 32);
+}

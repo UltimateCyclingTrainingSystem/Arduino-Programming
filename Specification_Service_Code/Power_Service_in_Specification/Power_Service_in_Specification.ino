@@ -3,11 +3,12 @@
 
 // Uncomment for debugging.
 //#define DEBUG_CADENCE_MEASUREMENTS 1
-//#define DEBUG_CADENCE_VALUES 1
-//#define DEBUG_TORQUE 1
+//#define DEBUG_CADENCE_CALCULATIONS 1
+//#define DEBUG_TORQUE_MEASUREMENTS 1
+//#define DEBUG_POWER_CALCULATIONS 1
 //#define DEBUG_BLE_PERIPHERAL 1
 //#define DEBUG_BLE_MESSAGES 1
-//#define DEBUG_ACCUM_TORQUE 1
+#define DEBUG_MAIN_VALUES 1
 
 /// START DEFINITIONS ///
 // Own sensors pins.
@@ -28,6 +29,7 @@ const unsigned int cuiMaxForce = 2000;  // In Newtons.
 const unsigned long culTimerInterruptPeriod = 1000;     // in us.
 const unsigned long culTimerCadenceReadPeriod = 10;     // in ms.
 const unsigned long culTimerTorqueReadPeriod = 100;     // in ms.
+const unsigned long culTimerPowerReadPeriod = 1000;     // in ms.
 
 // BLE Configuration values
 const unsigned char cucBLEPowerSensorLocation = 0x06;     // Right Crank.
@@ -43,6 +45,7 @@ bool bConnectedFlag = 0;
 // Timer counters.
 unsigned long ulCadenceMillisecondCounter = 0;
 unsigned long ulTorqueMillisecondCounter = 0;
+unsigned long ulPowerMillisecondCounter = 0;
 unsigned int uiCadenceReadWait = cuiMinRevDuration;
 
 // Physical quantities.
@@ -80,16 +83,8 @@ BLEPeripheral blePeripheral; // create peripheral instance.
 // BLE Cycing power initialization.
 BLEService powerService("1818");
 BLECharacteristic powerMeasurementChar("2A63", BLENotify, 10);
-//BLECharacteristic powerMeasurementClientDesc("2902", BLERead | BLEWrite, 2);
-//BLECharacteristic powerMeasurementServerDesc("2903", BLERead | BLEWrite, 2);
 BLECharacteristic powerFeatureChar("2A65", BLERead, 4);
 BLECharacteristic powerSensorLocationChar("2A5D", BLERead, 1);
-
-// BLE Cycling speed and cadence initialization.
-BLEService cadenceService("1816");
-BLECharacteristic cadenceMeasurementChar("2A5B", BLENotify, 5);
-//BLECharacteristic cadenceMeasurementDesc("2902", BLERead | BLEWrite, 2);
-BLECharacteristic cadenceFeatureChar("2A5C", BLERead, 2);
 
 /// END DEFINITIONS ///
 
@@ -98,7 +93,7 @@ BLECharacteristic cadenceFeatureChar("2A5C", BLERead, 2);
 */
 void setup() {
   // Start serial debugging.
-  Serial.begin(115200);
+  Serial.begin(250000);
 
   // Initialize digital pin behaviour.
   pinMode(cuiCadencePin, INPUT);
@@ -147,7 +142,6 @@ void loop() {
 
       // Update power and cadence characteristics every second.
       Serial.println("Running");
-      BLE_CAD_updateCadence();
       BLE_POW_updatePower();
 
 #ifdef DEBUG_BLE_PERIPHERAL
@@ -166,13 +160,7 @@ void loop() {
     Serial.print("Disconnected from central: ");
     Serial.println(central.address());
     central.disconnect();
-    /*
-        // Reset BLE device.
-        blePeripheral.end();
-        initBleDevice();
-        // Advertise the service
-        blePeripheral.begin();
-    */
+
     Serial.println("Bluetooth device active, waiting for connections...");
   }
 }
@@ -204,11 +192,6 @@ void initBleDevice(void) {
   blePeripheral.addAttribute(powerMeasurementChar);
   blePeripheral.addAttribute(powerFeatureChar);
   blePeripheral.addAttribute(powerSensorLocationChar);
-
-  // Initialize cadence service.
-  blePeripheral.addAttribute(cadenceService);
-  blePeripheral.addAttribute(cadenceMeasurementChar);
-  blePeripheral.addAttribute(cadenceFeatureChar);
 
   // Initialize timer interruptions.
   CurieTimerOne.start(culTimerInterruptPeriod, &Int_1ms);
