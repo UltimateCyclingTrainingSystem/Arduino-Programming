@@ -1,12 +1,12 @@
 void BLE_POW_updatePower(void) {
 
   // Power must be calculated locally, cadence remotely. Local cadence calculation only for debug purposes.
-  calculateBLEPowerLocally();
   calculateBLECadenceLocally();
+  calculateBLEPowerLocally();
 
   // Prepare values to be sent by BLE
-  formatBLEPower();
   formatBLECadence();
+  formatBLEPower();
 
   if (bConnectedFlag && (oldBlePowerFeature != cuiBLEPowerFeatureConf)) {
     updatePowerFeatureChar();
@@ -164,6 +164,7 @@ void calculateBLEPowerLocally(void) {
   usTorqueCounter = 0;
 
   fAveragePower = 2 * cfPi * fAverageTorque * fInstCadenceRev;
+  fAveragePower = 2*fAveragePower;    // Torque is read from a single leg, multiply by two to get both legs.
 
 #ifdef DEBUG_POWER_CALCULATIONS
   Serial.print("fAverageTorque: ");

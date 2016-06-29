@@ -1,10 +1,11 @@
 void SEN_TOR_getInstantTorque(void) {
-  unsigned int uiReadInstForce;
-  float fInstForce;
+  unsigned int uiReadInstVoltage;
+  float fInstVoltage, fInstForce;
 
   // Read force signal from pin and convert analog value to a force value.
-  uiReadInstForce = analogRead(cuiForcePin);
-  fInstForce = float(map(uiReadInstForce, 0, 1023, 0, cuiMaxForce * 100)) / 100.0f; // Max value: 2000 N
+  uiReadInstVoltage = analogRead(cuiForcePin);
+  fInstVoltage = float(map(uiReadInstVoltage, 0, 1023, 0, 500)) / 100.0f;
+  fInstForce = fForceSlope*fInstVoltage+fForceOffset;
 
   // Calculate the torque out of this force and the crank length.
   fInstTorque = fInstForce * cfCrankLength; // Max value around 200 Nm.

@@ -8,7 +8,7 @@
 //#define DEBUG_POWER_CALCULATIONS 1
 //#define DEBUG_BLE_PERIPHERAL 1
 //#define DEBUG_BLE_MESSAGES 1
-#define DEBUG_MAIN_VALUES 1
+//#define DEBUG_MAIN_VALUES 1
 
 /// START DEFINITIONS ///
 // Own sensors pins.
@@ -19,11 +19,12 @@ const unsigned int cuiCadencePin = 2;
 const unsigned int cuiInternalLedPin = 13;
 
 // Calculation constants.
-const float cfCrankLength = 0.1f;   // in m.
+const float fForceSlope = 290.10f;
+const float fForceOffset = -187.26f;
+const float cfCrankLength = 0.17f;   // in m.
 const float cfPi = 3.1416f;
 const unsigned int cuiMinRevDuration = 240;   // in ms.
 const unsigned int cuiMaxRevDuration = 2000;  // in ms.
-const unsigned int cuiMaxForce = 2000;  // In Newtons.
 
 // Timer constants
 const unsigned long culTimerInterruptPeriod = 1000;     // in us.
