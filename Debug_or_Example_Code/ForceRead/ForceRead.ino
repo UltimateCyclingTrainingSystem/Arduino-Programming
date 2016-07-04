@@ -1,6 +1,10 @@
 unsigned int valRead;
 unsigned int voltage;
 float voltageFloat = 0;
+float estForce = 0;
+
+const float slope = 261.7427;
+const float offset = -181.948;
 
 void setup() {
   // put your setup code here, to run once:
@@ -12,7 +16,14 @@ void loop() {
   valRead = analogRead(A5);
   voltage = map(valRead, 0, 1023, 0, 500);
   voltageFloat = float(voltage)/100.0f;
-  Serial.println(voltage);
+  estForce = slope*voltageFloat+offset;
+  if (estForce < 0.0f) {
+    estForce = 0.0f;
+  }
+  Serial.println(valRead);
   Serial.println(voltageFloat);
+  Serial.println(estForce);
+  Serial.println(2*estForce/9.81);
+  Serial.println("-----------------");
   delay(1000);
 }
