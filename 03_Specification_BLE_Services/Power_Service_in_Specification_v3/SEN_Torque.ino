@@ -19,6 +19,8 @@ void SEN_TOR_getInstantTorque(void) {
 
   // Debug force measurement.
 #ifdef DEBUG_TORQUE_MEASUREMENTS
+  Serial.print("Weight: ");
+  Serial.println(2*fMeasuredForce/9.81);
   Serial.print("uiMeasuredVoltage: ");
   Serial.println(uiMeasuredVoltage);
   Serial.print("fMeasuredForce: ");
@@ -26,6 +28,7 @@ void SEN_TOR_getInstantTorque(void) {
   Serial.print("fMeasuredTorque: ");
   Serial.println(fMeasuredTorque);
   Serial.println("-------------------------------");
+  delay(500);
 #endif
 }
 

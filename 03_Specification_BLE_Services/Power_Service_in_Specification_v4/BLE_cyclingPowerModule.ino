@@ -49,8 +49,8 @@ void updatePowerMeasChar(void) {
   unsigned char FLGSH = (unsigned char)((cucBLEPowerMeasurementFlags >> 8) & 0x00FF);   // Measurement flags (higher byte);
   unsigned char POWL = (unsigned char)(blePowerMeasurement & 0x00FF);                   // Power measurement (lower byte);
   unsigned char POWH = (unsigned char)((blePowerMeasurement >> 8) & 0x00FF);            // Power measurement (higer byte);
-  unsigned char ACCTL = (unsigned char)(bleAccumulatedTorque & 0x00FF);                 // Accumulated torque (lower byte);
-  unsigned char ACCTH = (unsigned char)((bleAccumulatedTorque >> 8) & 0x00FF);          // Accumulated torque (higer byte);
+  unsigned char ACCTL = 0x00;//(unsigned char)(bleAccumulatedTorque & 0x00FF);                 // Accumulated torque (lower byte);
+  unsigned char ACCTH = 0x00;//(unsigned char)((bleAccumulatedTorque >> 8) & 0x00FF);          // Accumulated torque (higer byte);
   unsigned char CCRL = (unsigned char)((bleCumulativeCrankRevolutions) & 0x00FF);       // Cumulative crank revolutions (lower byte);
   unsigned char CCRH = (unsigned char)((bleCumulativeCrankRevolutions >> 8) & 0x00FF);  // Cumulative crank revolutions (higher byte);
   unsigned char LCETL = (unsigned char)((bleLastCrankEventTime) & 0x00FF);              // Last event time (lower byte);
@@ -123,17 +123,21 @@ void calculateBLECadenceLocally(void) {
   else if (ulOldCadenceLastCrankEventTime > ulCadenceLastCrankEventTime) {
     divi = float(64000 - ulOldCadenceLastCrankEventTime + ulCadenceLastCrankEventTime) / 1000.0f;
     fAverageBLECadence = num / divi;
+    usCadenceStopCounter = 0;
   }
   // If no wrapping then proceed as usual.
   else {
     divi = float(ulCadenceLastCrankEventTime - ulOldCadenceLastCrankEventTime) / 1000.0f;
     fAverageBLECadence = num / divi;
+    usCadenceStopCounter = 0;
   }
 
   // For the special case that the pedal stays in a position where the sensor detects.
-  if (num >= 4.0f) {  // Because let's be honest, only olympians pedal that fast.
-    fAverageBLECadence = 0.0f;
-    uiCadenceReadWait = cuiMinRevDuration;
+  if (num >= 3.0f) {  // Because let's be honest, only olympians pedal that fast.
+    if (usCadenceStopCounter++ >= cusCadenceStopPeriod) {
+      usCadenceStopCounter = 0;
+      fAverageBLECadence = 0;
+    }
   }
 
 #ifdef DEBUG_CADENCE_CALCULATIONS
@@ -157,22 +161,49 @@ void calculateBLECadenceLocally(void) {
 }
 
 void calculateBLEPowerLocally(void) {
-  if (usAverageRevTorqueCounter > 0) {
+  bool bCheckPower = 0;
+  /*
+    if (usAverageRevTorqueCounter > 0 && fAverageRevTorqueSum > 0) {
     fAverageBLETorque = fAverageRevTorqueSum / usAverageRevTorqueCounter;
     fAverageRevTorqueSum = 0.0f;
     usAverageRevTorqueCounter = 0;
-  }
-  else {
+    usPowerStopCounter = 0;
+    fAverageBLEPower = 2 * cfPi * fAverageBLETorque * fAverageBLECadence;
+    fAverageBLEPower = 2 * fAverageBLEPower;  // Torque is read from a single leg, multiply by two to get both legs.
+    }
+    else {
     if (usPowerStopCounter++ >= cusPowerStopPeriod) {
       fAverageBLETorque = 0.0f;
       fAverageRevTorqueSum = 0.0f;
       usAverageRevTorqueCounter = 0;
       usPowerStopCounter = 0;
+      fAverageBLEPower = 0;
+    }
+    }*/
+  if (usAverageRevTorqueCounter > 0) {
+    fAverageBLETorque = fAverageRevTorqueSum / usAverageRevTorqueCounter;
+    fAverageRevTorqueSum = 0.0f;
+    usAverageRevTorqueCounter = 0;
+    usPowerStopCounter = 0;
+    fAverageBLEPower = 2 * cfPi * fAverageBLETorque * fAverageBLECadence;
+    fAverageBLEPower = 2 * fAverageBLEPower;  // Torque is read from a single leg, multiply by two to get both legs.
+    if (fAverageBLEPower <= 5) {
+      bCheckPower = 1;
     }
   }
-
-  fAverageBLEPower = 2 * cfPi * fAverageBLETorque * fAverageBLECadence;
-  fAverageBLEPower = 2 * fAverageBLEPower;  // Torque is read from a single leg, multiply by two to get both legs.
+  if (bCheckPower || usAverageRevTorqueCounter == 0) {
+    bCheckPower = 0;
+    if (usPowerStopCounter++ >= cusPowerStopPeriod) {
+      fAverageBLETorque = 0.0f;
+      fAverageRevTorqueSum = 0.0f;
+      usAverageRevTorqueCounter = 0;
+      usPowerStopCounter = 0;
+      fAverageBLEPower = 0;
+    }
+    else {
+      fAverageBLEPower = fOldBLEPower;
+    }
+  }
 
 #ifdef DEBUG_POWER_CALCULATIONS
   Serial.print("fAverageBLETorque: ");
@@ -199,7 +230,11 @@ void formatBLEPower(void) {
 
 float filterMeasurement(float oldValue, float newValue) {
   return newValue;
+  
   //return (oldValue+newValue)/2;
+
+  //float alpha = 0.8f;
+  //return alpha*newValue + (1-alpha)*oldValue;
 }
 
 void resetMeasurements(void) {
@@ -207,11 +242,12 @@ void resetMeasurements(void) {
   fAverageBLETorque = 0.0f;
   fAverageRevTorqueSum = 0.0f;
   fAverageBLEPower = 0.0f;
+  fOldBLEPower  = 0.0f;
 
   uiCumulativeCrankRevolutions = 0;
   uiOldCumulativeCrankRevolutions = 0;
-  ulCadenceLastCrankEventTime = 0;
-  ulOldCadenceLastCrankEventTime = 0;
+  ulCadenceLastCrankEventTime = millis() - usReferenceMillis;
+  ulOldCadenceLastCrankEventTime = millis() - usReferenceMillis;
   usCadenceStopCounter = 0;
   usAverageRevTorqueCounter = 0;
   usPowerStopCounter = 0;

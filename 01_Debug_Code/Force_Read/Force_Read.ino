@@ -23,6 +23,7 @@ void loop() {
   Serial.println(valRead);
   Serial.println(voltageFloat);
   Serial.println(estForce);
+  Serial.println("Weight: ");
   Serial.println(2*estForce/9.81);
   Serial.println("-----------------");
   delay(1000);

@@ -37,9 +37,9 @@ const float fForceOffset = -187.26f;
 const unsigned long culTimerInterruptPeriod = 1000; // in us.
 const unsigned long culTimerTorqueReadPeriod = 1;  // in ms.
 const unsigned long culBLEUpdatePeriod = 1000;      // in ms.
-const unsigned int cuiMinRevDuration = 250;         // in ms.
-const unsigned short cusCadenceStopPeriod = 3;      // in s.
-const unsigned short cusPowerStopPeriod = 3;      // in s.
+const unsigned int cuiMinRevDuration = 333;         // in ms.
+const unsigned short cusCadenceStopPeriod = 2;      // in s.
+const unsigned short cusPowerStopPeriod = 2;      // in s.
 
 // BLE Configuration values
 const unsigned char cucBLEPowerSensorLocation = 0x06;     // Right Crank.
@@ -200,7 +200,7 @@ void Int_1ms(void) {
 
 void initBleDevice(void) {
   // Initialize BLE device, services and characteristics.
-  blePeripheral.setLocalName("UCTS_BLE");
+  blePeripheral.setLocalName("PowerCrank_LH");
   blePeripheral.setAdvertisedServiceUuid(powerService.uuid());
 
   // Initialize power service.
